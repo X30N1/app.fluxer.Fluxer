@@ -30,3 +30,16 @@ index 4ee9ac8a..e688604a 100644
  		},
  	});
  
+diff --git a/fluxer_desktop/src/main/index.tsx b/fluxer_desktop/src/main/index.tsx
+index 7a05896b..328215a9 100644
+--- a/fluxer_desktop/src/main/index.tsx
++++ b/fluxer_desktop/src/main/index.tsx
+@@ -73,7 +73,7 @@ if (process.platform === 'win32') {
+ }
+ 
+ if (process.platform === 'linux') {
+-	const linuxName = isCanary ? 'Fluxer Canary' : 'Fluxer';
++	const linuxName = isCanary ? 'app.fluxer.FluxerCanary' : 'app.fluxer.Fluxer';
+ 	app.setName(linuxName);
+ 	app.commandLine.appendSwitch('enable-features', 'WebRTCPipeWireCapturer');
+ }
