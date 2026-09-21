@@ -1,11 +1,13 @@
 id: app.fluxer.Fluxer
 runtime: org.freedesktop.Platform
-runtime-version: "25.08"
+runtime-version: "26.08"
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
-base-version: "25.08"
+base-version: "26.08"
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.node22
+  - org.freedesktop.Sdk.Extension.node24
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.llvm22
 command: app.fluxer.Fluxer
 separate-locales: false
 finish-args:
@@ -15,57 +17,70 @@ finish-args:
   - --socket=pulseaudio
   - --share=network
   - --device=all
+  - --filesystem=xdg-run/pipewire-0:ro
   - --filesystem=xdg-run/speech-dispatcher:ro
   - --env=ELECTRON_OZONE_PLATFORM_HINT=auto
   - --env=XCURSOR_PATH=/run/host/user-share/icons:/run/host/share/icons
+  - --talk-name=org.ayatana.indicator.application
+  - --talk-name=com.canonical.indicator.application
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.Notifications
 build-options:
   strip: true
-  append-path: /usr/lib/sdk/node22/bin
+  append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm22/bin
+  env:
+    LIBCLANG_PATH: /usr/lib/sdk/llvm22/lib
 modules:
+  - native-dependencies.yml
   - name: fluxer
     buildsystem: simple
     build-options:
       strip: true
-      prepend-path: /run/build/fluxer/pnpm/bin:/run/build/fluxer/fluxer_desktop/node_modules/.bin
+      prepend-path: /run/build/fluxer/pnpm/bin
       env:
+        BUILD_CHANNEL: stable
+        LK_CUSTOM_WEBRTC: /run/build/fluxer/webrtc-linux
+        CARGO_HOME: /run/build/fluxer/cargo
+        CARGO_NET_OFFLINE: "true"
         NPM_CONFIG_LOGLEVEL: info
+        PNPM_CONFIG_TRUST_LOCKFILE: "true"
         XDG_CACHE_HOME: /run/build/fluxer/flatpak-node/cache
         ELECTRON_SKIP_BINARY_DOWNLOAD: "true"
-        npm_config_nodedir: /usr/lib/sdk/node22
+        npm_config_nodedir: /usr/lib/sdk/node24
         npm_config_store_dir: /run/build/fluxer/flatpak-node/pnpm-store
         npm_config_offline: "true"
-    subdir: fluxer_desktop
     build-commands:
-      - ln -s ./pnpm.cjs ../pnpm/bin/pnpm
-      # For disabling automatic detection for pnpm
       - pnpm install --ignore-scripts --frozen-lockfile --offline --force
-      - pnpm build
       - |
         set -eux
-        . ../flatpak-node/electron-builder-arch-args.sh
-        electron-builder --config ./electron-builder.config.cjs --linux --dir $ELECTRON_BUILDER_ARCH_ARGS
-      - mv dist-electron/linux*-unpacked $FLATPAK_DEST/fluxer
+        . ./flatpak-node/electron-builder-arch-args.sh        
+        export VERSION="$(git describe --tags --exact-match | cut -d@ -f2)"
+        cd fluxer_desktop       
+        pnpm build 
+        pnpm exec electron-builder --dir --config electron-builder.config.cjs $ELECTRON_BUILDER_ARCH_ARGS
+      - mv fluxer_desktop/dist-electron/linux*-unpacked $FLATPAK_DEST/fluxer
+      - mv $FLATPAK_DEST/fluxer/fluxer_desktop $FLATPAK_DEST/fluxer/fluxer
       # Inject the correct Flatpak App ID directly into the Electron archive:
       - patch-electron-desktop-filename ${FLATPAK_DEST}/fluxer/resources/app.asar
       - install -Dm755 ${FLATPAK_ID}.sh ${FLATPAK_DEST}/bin/${FLATPAK_ID}
-      - install -Dm644 packaging/linux/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
-      - install -Dm644 packaging/linux/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
-      - install -Dm644 packaging/linux/${FLATPAK_ID}.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
+      - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
+      - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
     sources:
       - type: git
         url: https://github.com/fluxerapp/fluxer.git
-        commit: ee1f27fe1a372b5291aead8042944afd706bf5db
         disable-submodules: true
-      - type: patch
-        path: fix.patch
-      - type: patch
-        path: arm-fix.patch
-        only-arches: [aarch64]
+        tag: fluxer-desktop-stable@2026.920.144558
+        commit: 416af4bec47b04e0acc95619f84bde5c7042a344
+        x-checker-data:
+          type: git
+          is-main-source: true
+          tag-pattern: fluxer-desktop-stable@([\d.]+)$
       - type: file
         path: app.fluxer.Fluxer.sh
-        dest: fluxer_desktop
-      - type: archive
-        url: https://registry.npmjs.org/pnpm/-/pnpm-10.25.0.tgz
-        sha512: 5e82639027af37cf832061bcc6d639c219634488e0f2baebe785028a793de7b525ffcd3f7ff574f5e9860654e098fe852ba8ac5dd5cefe1767d23a020a92f501
-        dest: pnpm
-      - generated-sources.json
+      - type: patch
+        path: metainfo.patch
+      - pnpm.json
+      - pnpm-sources.json
+      - cargo-sources.json
+      - cargo-linux-webrtc.json
