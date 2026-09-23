@@ -53,10 +53,10 @@ modules:
       - pnpm install --ignore-scripts --frozen-lockfile --offline --force
       - |
         set -eux
-        . ./flatpak-node/electron-builder-arch-args.sh        
+        . ./flatpak-node/electron-builder-arch-args.sh
         export VERSION="$(git describe --tags --exact-match | cut -d@ -f2)"
-        cd fluxer_desktop       
-        pnpm build 
+        cd fluxer_desktop
+        pnpm build
         pnpm exec electron-builder --dir --config electron-builder.config.cjs $ELECTRON_BUILDER_ARCH_ARGS
       - mv fluxer_desktop/dist-electron/linux*-unpacked $FLATPAK_DEST/fluxer
       - mv $FLATPAK_DEST/fluxer/fluxer_desktop $FLATPAK_DEST/fluxer/fluxer
@@ -64,22 +64,29 @@ modules:
       - patch-electron-desktop-filename ${FLATPAK_DEST}/fluxer/resources/app.asar
       - install -Dm755 ${FLATPAK_ID}.sh ${FLATPAK_DEST}/bin/${FLATPAK_ID}
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
+      # Patch the metadata file to inject the latest verison. Workaround until release tagging is set up upstream.
+      - |
+        set -eux
+        VERSION="$(git describe --tags --exact-match | cut -d@ -f2)"
+        ymd="${VERSION%.*}"; y="${ymd%%.*}"; md="${ymd#*.}"
+        DATE="$(printf '%s-%02d-%02d' "$y" $((md/100)) $((md%100)))"
+        metainf=fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml
+        sed -i -e '/<releases>/,/<\/releases>/d' -e '/<releases\/>/d' "$metainf"
+        sed -i "s|</component>|    <releases>\n        <release version=\"$VERSION\" date=\"$DATE\"/>\n    </releases>\n</component>|" "$metainf"
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
     sources:
       - type: git
         url: https://github.com/fluxerapp/fluxer.git
         disable-submodules: true
-        tag: fluxer-desktop-stable@2026.920.144558
-        commit: 416af4bec47b04e0acc95619f84bde5c7042a344
+        tag: fluxer-desktop-stable@2026.922.193957
+        commit: 320725a58725888eef9b920e34f0adb88def7a27
         x-checker-data:
           type: git
           is-main-source: true
           tag-pattern: fluxer-desktop-stable@([\d.]+)$
       - type: file
         path: app.fluxer.Fluxer.sh
-      - type: patch
-        path: metainfo.patch
       - pnpm.json
       - pnpm-sources.json
       - cargo-sources.json
