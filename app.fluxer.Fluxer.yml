@@ -26,7 +26,6 @@ finish-args:
   - --talk-name=com.canonical.indicator.application
   - --talk-name=org.kde.StatusNotifierWatcher
   - --talk-name=org.freedesktop.Notifications
-  - --talk-name=org.freedesktop.secrets
 build-options:
   strip: true
   append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm22/bin
