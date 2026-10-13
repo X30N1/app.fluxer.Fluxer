@@ -44,9 +44,9 @@
   {
     "type": "archive",
     "archive-type": "tar-gzip",
-    "url": "https://static.crates.io/crates/ammonia/ammonia-4.2.0.crate",
-    "sha256": "3f7ed3ac4252be4d3e36fb589ed5659356842587b21a31596a9dc89d3b2f5e2a",
-    "dest": "cargo/vendor/ammonia-4.2.0"
+    "url": "https://static.crates.io/crates/ammonia/ammonia-4.2.3.crate",
+    "sha256": "061e83b03c2681c18a6787d956e355c74e0b98ba7ba3d69b0822ade1e6f1d716",
+    "dest": "cargo/vendor/ammonia-4.2.3"
   },
   {
     "type": "archive",
@@ -5002,6 +5002,12 @@
   },
   {
     "type": "inline",
+    "contents": "{\"package\": \"061e83b03c2681c18a6787d956e355c74e0b98ba7ba3d69b0822ade1e6f1d716\", \"files\": {}}",
+    "dest": "cargo/vendor/ammonia-4.2.3",
+    "dest-filename": ".cargo-checksum.json"
+  },
+  {
+    "type": "inline",
     "contents": "{\"package\": \"064badf302c3194842cf2c5d61f56cc88e54a759313879cdf03abdd27d0c3b97\", \"files\": {}}",
     "dest": "cargo/vendor/core-graphics-0.25.0",
     "dest-filename": ".cargo-checksum.json"
@@ -5988,12 +5994,6 @@
     "type": "inline",
     "contents": "{\"package\": \"3f6221d9a6003c78398e3b239969f352578258df48c8eb051caadae0015bc840\", \"files\": {}}",
     "dest": "cargo/vendor/tar-0.4.46",
-    "dest-filename": ".cargo-checksum.json"
-  },
-  {
-    "type": "inline",
-    "contents": "{\"package\": \"3f7ed3ac4252be4d3e36fb589ed5659356842587b21a31596a9dc89d3b2f5e2a\", \"files\": {}}",
-    "dest": "cargo/vendor/ammonia-4.2.0",
     "dest-filename": ".cargo-checksum.json"
   },
   {

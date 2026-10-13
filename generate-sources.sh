@@ -75,6 +75,25 @@ jq '
     end)
 ' merged-fixed-cargo-sources.json > merged-fixed-deep_filter-cargo-sources.json
 
+WASM_BINDGEN_VERSION=$(sed -n 's/^const LIBFLUXCORE_WASM_BINDGEN_VERSION: &str = "\(.*\)";$/\1/p' tools/ci/src/app_wasm.rs)
+
+WASM_BINDGEN_CRATE_URL="https://static.crates.io/crates/wasm-bindgen-cli/wasm-bindgen-cli-${WASM_BINDGEN_VERSION}.crate"
+
+curl -sSfL "$WASM_BINDGEN_CRATE_URL" -o "$WORKDIR/wasm-bindgen-cli.crate"
+
+tar -xzf "$WORKDIR/wasm-bindgen-cli.crate" -C "$WORKDIR"
+
+flatpak-cargo-generator "$WORKDIR/wasm-bindgen-cli-${WASM_BINDGEN_VERSION}/Cargo.lock" -o "$WORKDIR/wasm-bindgen-cli-sources.json"
+
+jq . "$WORKDIR/wasm-bindgen-cli-sources.json" > "$CUR_DIR/wasm-bindgen-cli-sources.json"
+
+WASM_BINDGEN_CRATE_SHA256=$(sha256sum "$WORKDIR/wasm-bindgen-cli.crate" | cut -d' ' -f1)
+
+sed -i \
+    -e "s|^\(    url: \)https://static.crates.io/crates/wasm-bindgen-cli/.*|\1${WASM_BINDGEN_CRATE_URL}|" \
+    -e "/wasm-bindgen-cli-.*\.crate$/{n;s|^\(    sha256: \).*|\1${WASM_BINDGEN_CRATE_SHA256}|}" \
+    "$CUR_DIR/wasm-bindgen-cli.yml"
+
 cp "pnpm-sources.json" "$CUR_DIR/pnpm-sources.json"
 
 cp "merged-fixed-deep_filter-cargo-sources.json" "$CUR_DIR/cargo-sources.json"

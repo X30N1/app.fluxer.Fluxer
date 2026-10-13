@@ -6,7 +6,6 @@ base: org.electronjs.Electron2.BaseApp
 base-version: '26.08'
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
-  - org.freedesktop.Sdk.Extension.rust-stable
   - org.freedesktop.Sdk.Extension.llvm22
 command: app.fluxer.Fluxer
 separate-locales: false
@@ -28,11 +27,13 @@ finish-args:
   - --talk-name=org.freedesktop.Notifications
 build-options:
   strip: true
-  append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin:/usr/lib/sdk/llvm22/bin
+  append-path: /usr/lib/sdk/node24/bin:/app/rust/bin:/usr/lib/sdk/llvm22/bin
   env:
     LIBCLANG_PATH: /usr/lib/sdk/llvm22/lib
 modules:
   - native-dependencies.yml
+  - rust-toolchain.yml
+  - wasm-bindgen-cli.yml
   - name: fluxer
     buildsystem: simple
     build-options:
@@ -55,7 +56,11 @@ modules:
       - |
         set -eux
         . ./flatpak-node/electron-builder-arch-args.sh
-        export VERSION="$(git describe --tags --exact-match | cut -d@ -f2)"
+        export VERSION="$(git describe --tags --exact-match --match 'fluxer-desktop-stable@*' | cut -d@ -f2)"
+        export BUILD_VERSION="$VERSION" PUBLIC_BUILD_VERSION="$VERSION"
+        export RELEASE_CHANNEL="$BUILD_CHANNEL" PUBLIC_RELEASE_CHANNEL="$BUILD_CHANNEL"
+        export HOST_CFLAGS="$CFLAGS" HOST_CXXFLAGS="$CXXFLAGS"
+        unset CFLAGS CXXFLAGS
         cd fluxer_desktop
         pnpm build
         pnpm exec electron-builder --dir --config electron-builder.config.cjs $ELECTRON_BUILDER_ARCH_ARGS
@@ -68,7 +73,7 @@ modules:
       # Patch the metadata file to inject the latest verison. Workaround until release tagging is set up upstream.
       - |
         set -eux
-        VERSION="$(git describe --tags --exact-match | cut -d@ -f2)"
+        VERSION="$(git describe --tags --exact-match --match 'fluxer-desktop-stable@*' | cut -d@ -f2)"
         ymd="${VERSION%.*}"; y="${ymd%%.*}"; md="${ymd#*.}"
         DATE="$(printf '%s-%02d-%02d' "$y" $((md/100)) $((md%100)))"
         metainf=fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml
@@ -80,8 +85,8 @@ modules:
       - type: git
         url: https://github.com/fluxerapp/fluxer.git
         disable-submodules: true
-        tag: fluxer-desktop-stable@2026.1012.182913
-        commit: 44799dafa205e1d17d3a22adbeaf2cc4033a37ab
+        tag: fluxer-desktop-stable@2026.1013.135431
+        commit: d514501d57a60093c962a288bd4253b4039301e4
         x-checker-data:
           type: git
           is-main-source: true
