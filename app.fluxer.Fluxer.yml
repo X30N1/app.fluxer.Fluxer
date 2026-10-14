@@ -74,7 +74,6 @@ modules:
       - patch-electron-desktop-filename ${FLATPAK_DEST}/fluxer/resources/app.asar
       - install -Dm755 ${FLATPAK_ID}.sh ${FLATPAK_DEST}/bin/${FLATPAK_ID}
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
-      # Patch the metadata file to inject the latest verison. Workaround until release tagging is set up upstream.
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
     sources:
@@ -89,6 +88,7 @@ modules:
           tag-pattern: fluxer-desktop-stable@([\d.]+)$
       - type: file
         path: app.fluxer.Fluxer.sh
+        # Patch the metadata file to inject the latest verison. Workaround until release tagging is set up upstream.
       - type: shell
         commands:
           - |
