@@ -77,22 +77,25 @@ jq '
 
 WASM_BINDGEN_VERSION=$(sed -n 's/^const LIBFLUXCORE_WASM_BINDGEN_VERSION: &str = "\(.*\)";$/\1/p' tools/ci/src/app_wasm.rs)
 
-WASM_BINDGEN_CRATE_URL="https://static.crates.io/crates/wasm-bindgen-cli/wasm-bindgen-cli-${WASM_BINDGEN_VERSION}.crate"
+WASM_BINDGEN_VERSION=$(sed -n 's/^const LIBFLUXCORE_WASM_BINDGEN_VERSION: &str = "\(.*\)";$/\1/p' tools/ci/src/app_wasm.rs)
 
-curl -sSfL "$WASM_BINDGEN_CRATE_URL" -o "$WORKDIR/wasm-bindgen-cli.crate"
+for arch in x86_64 aarch64; do
+    url="https://github.com/wasm-bindgen/wasm-bindgen/releases/download/${WASM_BINDGEN_VERSION}/wasm-bindgen-${WASM_BINDGEN_VERSION}-${arch}-unknown-linux-musl.tar.gz"
+    sha256=$(curl -fsSL "$url" | sha256sum | cut -d ' ' -f 1)
 
-tar -xzf "$WORKDIR/wasm-bindgen-cli.crate" -C "$WORKDIR"
-
-flatpak-cargo-generator "$WORKDIR/wasm-bindgen-cli-${WASM_BINDGEN_VERSION}/Cargo.lock" -o "$WORKDIR/wasm-bindgen-cli-sources.json"
-
-jq . "$WORKDIR/wasm-bindgen-cli-sources.json" > "$CUR_DIR/wasm-bindgen-cli-sources.json"
-
-WASM_BINDGEN_CRATE_SHA256=$(sha256sum "$WORKDIR/wasm-bindgen-cli.crate" | cut -d' ' -f1)
-
-sed -i \
-    -e "s|^\(    url: \)https://static.crates.io/crates/wasm-bindgen-cli/.*|\1${WASM_BINDGEN_CRATE_URL}|" \
-    -e "/wasm-bindgen-cli-.*\.crate$/{n;s|^\(    sha256: \).*|\1${WASM_BINDGEN_CRATE_SHA256}|}" \
-    "$CUR_DIR/wasm-bindgen-cli.yml"
+    jq --arg arch "$arch" \
+       --arg url "$url" \
+       --arg sha256 "$sha256" \
+       'map(
+          if .dest == "wasm-bindgen" and
+             ((.["only-arches"] // []) | index($arch)) then
+            .url = $url | .sha256 = $sha256
+          else
+            .
+          end
+       )' "$CUR_DIR/wasm-bindgen.json" > "wasm-bindgen.json" &&
+       cp "wasm-bindgen.json" "$CUR_DIR/wasm-bindgen.json" || exit 1
+done
 
 cp "pnpm-sources.json" "$CUR_DIR/pnpm-sources.json"
 
