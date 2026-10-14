@@ -1,9 +1,9 @@
 id: app.fluxer.Fluxer
 runtime: org.freedesktop.Platform
-runtime-version: '26.08'
+runtime-version: "26.08"
 sdk: org.freedesktop.Sdk
 base: org.electronjs.Electron2.BaseApp
-base-version: '26.08'
+base-version: "26.08"
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
   - org.freedesktop.Sdk.Extension.llvm22
@@ -27,30 +27,35 @@ finish-args:
   - --talk-name=org.freedesktop.Notifications
 build-options:
   strip: true
-  append-path: /usr/lib/sdk/node24/bin:/app/rust/bin:/usr/lib/sdk/llvm22/bin
+  append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/llvm22/bin
   env:
     LIBCLANG_PATH: /usr/lib/sdk/llvm22/lib
 modules:
   - native-dependencies.yml
-  - rust-toolchain.yml
-  - wasm-bindgen-cli.yml
   - name: fluxer
     buildsystem: simple
+    cleanup:
+      - /include
+      - /lib/cmake
+      - /lib/sdk
+      - /lib/libcbor.a
+      - /lib/pkgconfig
+      - /lib/debug
     build-options:
       strip: true
-      prepend-path: /run/build/fluxer/pnpm/bin
+      prepend-path: /app/lib/sdk/rust/bin:/run/build/fluxer/pnpm/bin
       env:
         BUILD_CHANNEL: stable
         LK_CUSTOM_WEBRTC: /run/build/fluxer/webrtc-linux
         CARGO_HOME: /run/build/fluxer/cargo
-        CARGO_NET_OFFLINE: 'true'
+        CARGO_NET_OFFLINE: "true"
         NPM_CONFIG_LOGLEVEL: info
-        PNPM_CONFIG_TRUST_LOCKFILE: 'true'
+        PNPM_CONFIG_TRUST_LOCKFILE: "true"
         XDG_CACHE_HOME: /run/build/fluxer/flatpak-node/cache
-        ELECTRON_SKIP_BINARY_DOWNLOAD: 'true'
+        ELECTRON_SKIP_BINARY_DOWNLOAD: "true"
         npm_config_nodedir: /usr/lib/sdk/node24
         npm_config_store_dir: /run/build/fluxer/flatpak-node/pnpm-store
-        npm_config_offline: 'true'
+        npm_config_offline: "true"
     build-commands:
       - pnpm install --ignore-scripts --frozen-lockfile --offline --force
       - |
@@ -59,7 +64,6 @@ modules:
         export VERSION="$(git describe --tags --exact-match --match 'fluxer-desktop-stable@*' | cut -d@ -f2)"
         export BUILD_VERSION="$VERSION" PUBLIC_BUILD_VERSION="$VERSION"
         export RELEASE_CHANNEL="$BUILD_CHANNEL" PUBLIC_RELEASE_CHANNEL="$BUILD_CHANNEL"
-        export HOST_CFLAGS="$CFLAGS" HOST_CXXFLAGS="$CXXFLAGS"
         unset CFLAGS CXXFLAGS
         cd fluxer_desktop
         pnpm build
@@ -71,14 +75,6 @@ modules:
       - install -Dm755 ${FLATPAK_ID}.sh ${FLATPAK_DEST}/bin/${FLATPAK_ID}
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.desktop ${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop
       # Patch the metadata file to inject the latest verison. Workaround until release tagging is set up upstream.
-      - |
-        set -eux
-        VERSION="$(git describe --tags --exact-match --match 'fluxer-desktop-stable@*' | cut -d@ -f2)"
-        ymd="${VERSION%.*}"; y="${ymd%%.*}"; md="${ymd#*.}"
-        DATE="$(printf '%s-%02d-%02d' "$y" $((md/100)) $((md%100)))"
-        metainf=fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml
-        sed -i -e '/<releases>/,/<\/releases>/d' -e '/<releases\/>/d' "$metainf"
-        sed -i "s|</component>|    <releases>\n        <release version=\"$VERSION\" date=\"$DATE\"/>\n    </releases>\n</component>|" "$metainf"
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml ${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml
       - install -Dm644 fluxer_desktop/packaging/linux/${FLATPAK_ID}.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/${FLATPAK_ID}.svg
     sources:
@@ -93,7 +89,21 @@ modules:
           tag-pattern: fluxer-desktop-stable@([\d.]+)$
       - type: file
         path: app.fluxer.Fluxer.sh
+      - type: shell
+        commands:
+          - |
+            set -eux
+            VERSION="$(git describe --tags --exact-match --match 'fluxer-desktop-stable@*' | cut -d@ -f2)"
+            ymd="${VERSION%.*}"
+            y="${ymd%%.*}"
+            md="${ymd#*.}"
+            DATE="$(printf '%s-%02d-%02d' "$y" "$((md/100))" "$((md%100))")"
+            metainf="fluxer_desktop/packaging/linux/${FLATPAK_ID}.metainfo.xml"
+            sed -i -e '/<releases>/,/<\/releases>/d' -e '/<releases\/>/d' "$metainf"
+            sed -i "s|</component>|    <releases>\n        <release version=\"$VERSION\" date=\"$DATE\"/>\n    </releases>\n</component>|" "$metainf"
       - pnpm.json
+      - rust.json
+      - wasm-bindgen.json
       - pnpm-sources.json
       - cargo-sources.json
       - cargo-linux-webrtc.json
