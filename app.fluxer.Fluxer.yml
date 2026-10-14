@@ -40,7 +40,6 @@ modules:
       - /lib/sdk
       - /lib/libcbor.a
       - /lib/pkgconfig
-      - /lib/debug
     build-options:
       strip: true
       prepend-path: /app/lib/sdk/rust/bin:/run/build/fluxer/pnpm/bin
